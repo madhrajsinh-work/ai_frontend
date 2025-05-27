@@ -16,10 +16,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchProfile = async () => {
             const token = localStorage.getItem("token");
-            if (!token) {
-                navigate("/");
-                return;
-            }
+            if (!token) return navigate("/");
 
             try {
                 const res = await fetch("http://localhost:5000/api/user/profile", {
@@ -27,7 +24,6 @@ const Dashboard = () => {
                 });
 
                 const data = await res.json();
-
                 if (!res.ok) throw new Error(data.message || "Failed to fetch user");
 
                 setUser(data);
@@ -43,9 +39,7 @@ const Dashboard = () => {
         const fetchChatHistory = async () => {
             try {
                 const res = await fetch("http://localhost:5000/api/chat/history", {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
+                    headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
                 });
                 const data = await res.json();
                 setMessages(data.messages || []);
@@ -75,45 +69,50 @@ const Dashboard = () => {
     const handleSendMessage = async () => {
         if (!input.trim()) return;
 
-        const userMessage = { sender: "user", text: input };
+        const userMessage = { sender: "user", text: input, time: new Date().toISOString() };
         setMessages((prev) => [...prev, userMessage]);
         saveMessage("user", input);
         setInput("");
         setIsSending(true);
 
-        // Add temporary "typing..." message
         setMessages((prev) => [...prev, { sender: "bot", text: "Typing..." }]);
 
         try {
             const res = await fetch("http://localhost:5000/api/ai/ask", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("token")}`,
+                },
                 body: JSON.stringify({ prompt: userMessage.text }),
             });
 
             const data = await res.json();
 
-            const botMessage = { sender: "bot", text: data.answer };
-            setMessages((prev) => [
-                ...prev.slice(0, -1),
-                botMessage,
-            ]);
+            const botMessage = {
+                sender: "bot",
+                text: data.answer,
+                time: new Date().toISOString(),
+            };
 
+            setMessages((prev) => [...prev.slice(0, -1), botMessage]);
             saveMessage("bot", data.answer);
         } catch (err) {
             console.error("Error fetching response:", err);
-            setMessages((prev) => [
-                ...prev.slice(0, -1),
-                { sender: "bot", text: "Sorry, something went wrong." },
-            ]);
+            setMessages((prev) => [...prev.slice(0, -1), { sender: "bot", text: "Sorry, something went wrong." }]);
         } finally {
             setIsSending(false);
         }
     };
 
-    const handleEmojiClick = (emojiData) => {
-        setInput((prev) => prev + emojiData.emoji);
+    const handleEmojiClick = (emojiData) => setInput((prev) => prev + emojiData.emoji);
+
+    const formatTime = (iso) => {
+        const date = new Date(iso);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     };
+
+    const getInitials = (name) => name?.split(".")[0][0].toUpperCase() || "U";
 
     if (loading) return <div className="p-6">Loading...</div>;
 
@@ -123,21 +122,41 @@ const Dashboard = () => {
             <div className="min-h-screen bg-gray-100 pt-24 px-4 sm:px-10 flex flex-col items-center">
                 <div className="bg-white w-full max-w-3xl rounded-xl shadow-md flex flex-col h-[80vh] overflow-hidden relative">
                     <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                        {messages.map((msg, index) => (
-                            <div
-                                key={index}
-                                className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                            >
-                                <div
-                                    className={`px-4 py-2 rounded-xl max-w-[75%] ${msg.sender === "user"
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-200 text-gray-800"
-                                        }`}
-                                >
-                                    {msg.text}
+                        {messages.map((msg, index) => {
+                            const isSelf = msg.sender === "user" && !msg.text.includes("says:");
+                            const isForward = msg.text.includes("says:");
+                            const isBot = msg.sender === "bot" && !msg.text.includes("says:");
+
+                            const alignment = isSelf || isForward ? "justify-end" : "justify-start";
+                            const bubbleStyle = isSelf || isForward
+                                ? "bg-blue-600 text-white"
+                                : "bg-gray-200 text-gray-800";
+
+                            const senderName = isForward ? msg.text.split(" says:")[0] : null;
+                            const messageText = isForward ? msg.text.split(" says: ")[1] : msg.text;
+
+                            return (
+                                <div key={index} className={`flex ${alignment}`}>
+                                    <div className="flex flex-col items-end max-w-[75%]">
+                                        {isForward && (
+                                            <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                                                <div className="w-6 h-6 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">
+                                                    {getInitials(senderName)}
+                                                </div>
+                                                <span className="italic">From {senderName}</span>
+                                            </div>
+                                        )}
+
+                                        <div className={`px-4 py-2 rounded-xl ${bubbleStyle}`}>
+                                            <p>{messageText}</p>
+                                            <div className="text-[10px] text-gray-300 text-right mt-1">
+                                                {formatTime(msg.time || new Date())}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Input Section */}
