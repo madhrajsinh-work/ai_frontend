@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaPaperPlane, FaSmile, FaComments, FaRobot, FaSignOutAlt, FaSun, FaMoon, FaPalette, FaFont } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
@@ -189,15 +189,35 @@ const Dashboard = () => {
         }
     };
 
+
+
+    const messagesEndRef = useRef(null);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    useEffect(() => {
+        if (activeView === 'ai') {
+            scrollToBottom();
+        }
+    }, [activeView]);
+
+
+
     if (loading) return <div className="p-6">Loading...</div>;
 
     return (
-        <div className={`min-h-screen ${darkMode ? "dark bg-gray-900" : "bg-gray-100"} ${getFontSizeClass()}`}>
-            <div className="min-h-screen flex">
+        <div className={`h-screen ${darkMode ? "dark bg-gray-900" : "bg-gray-100"} ${getFontSizeClass()} overflow-hidden`}>
+            <div className="h-screen flex">
                 {/* Sidebar - View Selector */}
                 <div className={`w-64 ${darkMode ? "bg-gray-800 text-gray-100" : "bg-white"} rounded-l-xl shadow-md overflow-hidden flex flex-col`}>
                     <div className="flex-1">
-                        <div 
+                        <div
                             className={`p-4 flex items-center gap-3 cursor-pointer ${activeView === 'ai' ? (darkMode ? 'bg-gray-700' : 'bg-blue-50') : (darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50')}`}
                             onClick={() => setActiveView('ai')}
                         >
@@ -210,7 +230,7 @@ const Dashboard = () => {
                             </div>
                         </div>
 
-                        <div 
+                        <div
                             className={`p-4 flex items-center gap-3 cursor-pointer ${activeView === 'conversations' ? (darkMode ? 'bg-gray-700' : 'bg-blue-50') : (darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50')}`}
                             onClick={() => setActiveView('conversations')}
                         >
@@ -226,59 +246,39 @@ const Dashboard = () => {
 
                     {/* User Profile at Bottom */}
                     {user && (
-                        <div className={`border-t ${darkMode ? "border-gray-700" : "border-gray-200"} p-4 relative`}>
-                            <div 
-                                className="flex items-center gap-3 cursor-pointer"
-                                onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                            >
-                                {user.image ? (
-                                    <img 
-                                        src={`http://localhost:5000/${user.image}`}
-                                        alt="Avatar"
-                                        className="w-10 h-10 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className={`w-10 h-10 ${darkMode ? "bg-gray-600 text-gray-100" : "bg-blue-100 text-blue-700"} rounded-full flex items-center justify-center text-sm font-semibold`}>
-                                        {getInitials(user.username)}
+                        <div className={`border-t ${darkMode ? "border-gray-700" : "border-gray-200"} p-4`}>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    {user.image ? (
+                                        <img
+                                            src={`http://localhost:5000/${user.image}`}
+                                            alt="Avatar"
+                                            className="w-10 h-10 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className={`w-10 h-10 ${darkMode ? "bg-gray-600 text-gray-100" : "bg-blue-100 text-blue-700"} rounded-full flex items-center justify-center text-sm font-semibold`}>
+                                            {getInitials(user.username)}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h3 className="font-medium">{user.username}</h3>
+                                        <p className="text-xs opacity-70">{user.email}</p>
                                     </div>
-                                )}
-                                <div>
-                                    <h3 className="font-medium">{user.username}</h3>
-                                    <p className="text-xs opacity-70">{user.email}</p>
                                 </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className={`p-2 rounded-full ${darkMode ? "hover:bg-gray-700 text-gray-300" : "hover:bg-gray-100 text-gray-600"}`}
+                                    title="Logout"
+                                >
+                                    <FaSignOutAlt />
+                                </button>
                             </div>
-
-                            {showProfileDropdown && (
-                                <div className={`absolute bottom-16 left-0 right-0 ${darkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} border rounded shadow-md mx-4 z-10`}>
-                                    <button
-                                        onClick={() => setDarkMode(!darkMode)}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                        {darkMode ? <FaSun className="text-yellow-400" /> : <FaMoon />}
-                                        {darkMode ? "Light Mode" : "Dark Mode"}
-                                    </button>
-                                    <button
-                                        onClick={() => setShowThemeOptions(!showThemeOptions)}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                        <FaPalette />
-                                        Theme Options
-                                    </button>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                        <FaSignOutAlt />
-                                        Logout
-                                    </button>
-                                </div>
-                            )}
                         </div>
                     )}
                 </div>
 
                 {/* Main Content Area */}
-                <div className={`flex-1 ${darkMode ? "bg-gray-800 text-gray-100" : "bg-white"} rounded-r-xl shadow-md flex flex-col`}>
+                <div className={`flex-1 ${darkMode ? "bg-gray-800 text-gray-100" : "bg-white"} rounded-r-xl shadow-md flex flex-col overflow-hidden`}>
                     {activeView === 'ai' ? (
                         /* AI Chat Interface */
                         <>
@@ -332,23 +332,38 @@ const Dashboard = () => {
                             </div>
 
                             {/* Messages */}
-                            <div 
+                            <div
                                 className="flex-1 overflow-y-auto p-4 space-y-3"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                style={{
+                                    scrollbarWidth: 'thin',
+                                    msOverflowStyle: 'none',
+                                    scrollbarColor: `${themeColor} transparent`
+                                }}
                             >
-                                <style>{`::-webkit-scrollbar { display: none; }`}</style>
+                                <style>{`
+                                    ::-webkit-scrollbar {
+                                        width: 6px;
+                                    }
+                                    ::-webkit-scrollbar-track {
+                                        background: transparent;
+                                    }
+                                    ::-webkit-scrollbar-thumb {
+                                        background-color: ${themeColor};
+                                        border-radius: 3px;
+                                    }
+                                `}</style>
                                 {messages.map((msg, index) => {
                                     const isSelf = msg.sender === "user";
                                     const alignment = isSelf ? "justify-end" : "justify-start";
                                     const bubbleStyle = isSelf
                                         ? `text-white`
-                                        : darkMode 
+                                        : darkMode
                                             ? "bg-gray-700 text-gray-100"
                                             : "bg-gray-200 text-gray-800";
 
                                     return (
                                         <div key={index} className={`flex ${alignment}`}>
-                                            <div 
+                                            <div
                                                 className={`px-4 py-2 rounded-xl ${bubbleStyle} max-w-[75%]`}
                                                 style={isSelf ? { backgroundColor: themeColor } : {}}
                                             >
@@ -360,11 +375,12 @@ const Dashboard = () => {
                                         </div>
                                     );
                                 })}
+                                <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input Section */}
                             <div className={`border-t ${darkMode ? "border-gray-700" : "border-gray-200"} px-4 py-3 ${darkMode ? "bg-gray-800" : "bg-white"} flex items-center gap-3`}>
-                                <button 
+                                <button
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                     className={darkMode ? "text-gray-300 hover:text-yellow-400" : "text-gray-600 hover:text-yellow-500"}
                                 >
@@ -392,12 +408,12 @@ const Dashboard = () => {
 
                                 {showEmojiPicker && (
                                     <div className="absolute bottom-20 right-4 z-50">
-                                        <EmojiPicker 
+                                        <EmojiPicker
                                             onEmojiClick={(emojiData) => {
                                                 setInput(prev => prev + emojiData.emoji);
                                                 setShowEmojiPicker(false);
                                             }}
-                                            theme={darkMode ? "dark" : "light"} 
+                                            theme={darkMode ? "dark" : "light"}
                                         />
                                     </div>
                                 )}
@@ -411,28 +427,43 @@ const Dashboard = () => {
                                 <p className="text-sm opacity-70">View-only mode</p>
                             </div>
 
-                            <div 
+                            <div
                                 className="flex-1 overflow-y-auto p-4 space-y-4"
-                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                style={{
+                                    scrollbarWidth: 'thin',
+                                    msOverflowStyle: 'none',
+                                    scrollbarColor: `${themeColor} transparent`
+                                }}
                             >
-                                <style>{`::-webkit-scrollbar { display: none; }`}</style>
+                                <style>{`
+                                    ::-webkit-scrollbar {
+                                        width: 6px;
+                                    }
+                                    ::-webkit-scrollbar-track {
+                                        background: transparent;
+                                    }
+                                    ::-webkit-scrollbar-thumb {
+                                        background-color: ${themeColor};
+                                        border-radius: 3px;
+                                    }
+                                `}</style>
                                 {conversations.length === 0 ? (
                                     <div className="text-center py-8 opacity-70">
                                         No conversations found
                                     </div>
                                 ) : (
                                     conversations.map((conv) => (
-                                        <div 
+                                        <div
                                             key={conv.otherUser._id}
-                                            className={`p-4 rounded-lg ${darkMode ? "bg-gray-700" : "bg-white"} border ${selectedConversation?._id === conv._id ? `border-[${themeColor}]` : (darkMode ? "border-gray-600" : "border-gray-200")}`}
+                                            className={`p-4 cursor-pointer rounded-lg ${darkMode ? "bg-gray-700" : "bg-white"} border ${selectedConversation?._id === conv._id ? `border-[${themeColor}]` : (darkMode ? "border-gray-600" : "border-gray-200")}`}
                                             onClick={() => setSelectedConversation(conv)}
                                         >
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className={`w-10 h-10 ${darkMode ? "bg-gray-600" : "bg-blue-100"} ${darkMode ? "text-gray-100" : "text-blue-700"} rounded-full flex items-center justify-center text-sm font-semibold`}>
                                                     {conv.otherUser.image ? (
-                                                        <img 
-                                                            src={conv.otherUser.image} 
-                                                            alt={conv.otherUser.username} 
+                                                        <img
+                                                            src={`http://localhost:5000/${conv.otherUser.image.replace(/\\/g, '/')}`}
+                                                            alt={conv.otherUser.username}
                                                             className="w-full h-full rounded-full object-cover"
                                                         />
                                                     ) : (
@@ -444,11 +475,11 @@ const Dashboard = () => {
                                                     <p className="text-xs opacity-70">{conv.otherUser.phone}</p>
                                                 </div>
                                             </div>
-                                            
+
                                             <div className={`text-sm mb-2 ${darkMode ? "text-gray-300" : "text-gray-600"}`}>
                                                 Last message: {conv.lastMessage.text}
                                             </div>
-                                            
+
                                             <div className="text-xs opacity-50">
                                                 {formatTime(conv.lastMessage.timestamp)}
                                             </div>
@@ -462,10 +493,10 @@ const Dashboard = () => {
                                     <h3 className="font-medium mb-2">Conversation with {selectedConversation.otherUser.username}</h3>
                                     <div className="space-y-2 max-h-60 overflow-y-auto">
                                         {selectedConversation.messages.map((msg, i) => (
-                                            <div 
-                                                key={i} 
-                                                className={`p-2 rounded ${msg.sentByMe 
-                                                    ? (darkMode ? "bg-gray-600" : "bg-blue-100") 
+                                            <div
+                                                key={i}
+                                                className={`p-2 rounded ${msg.sentByMe
+                                                    ? (darkMode ? "bg-gray-600" : "bg-blue-100")
                                                     : (darkMode ? "bg-gray-700" : "bg-gray-100")} 
                                                 ${msg.sentByMe ? (darkMode ? "text-gray-100" : "text-blue-800") : (darkMode ? "text-gray-200" : "text-gray-800")}`}
                                             >
@@ -477,7 +508,7 @@ const Dashboard = () => {
                                         ))}
                                     </div>
                                     <div className="mt-3 text-center">
-                                        <button 
+                                        <button
                                             className="text-sm"
                                             style={{ color: themeColor }}
                                             onClick={() => {
