@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPaperPlane, FaSmile, FaComments, FaRobot, FaSignOutAlt, FaPalette, FaFont, FaCog } from "react-icons/fa";
+import { FaPaperPlane, FaSmile, FaComments, FaRobot, FaSignOutAlt, FaPalette, FaFont, FaCog, FaBars, FaTimes } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 
 const Dashboard = () => {
@@ -14,8 +14,9 @@ const Dashboard = () => {
     const [activeView, setActiveView] = useState("ai");
     const [selectedConversation, setSelectedConversation] = useState(null);
     const [showThemeOptions, setShowThemeOptions] = useState(false);
-    const [themeColor, setThemeColor] = useState("#3b82f6"); 
+    const [themeColor, setThemeColor] = useState("#3b82f6");
     const [fontSize, setFontSize] = useState("medium");
+    const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
     const navigate = useNavigate();
 
     // Available theme colors
@@ -152,6 +153,7 @@ const Dashboard = () => {
             setMessages((prev) => [...prev.slice(0, -1), { sender: "bot", text: "Sorry, something went wrong." }]);
         } finally {
             setIsSending(false);
+            setMobileSidebarOpen(false); // Close sidebar on mobile after sending
         }
     };
 
@@ -199,17 +201,46 @@ const Dashboard = () => {
         scrollToBottom();
     }, []);
 
+    const formatRelativeTime = (iso) => {
+        const now = new Date();
+        const date = new Date(iso);
+        const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    };
+
     if (loading) return <div className="p-6">Loading...</div>;
 
     return (
         <div className={`h-screen bg-gray-100 ${getFontSizeClass()} overflow-hidden`}>
-            <div className="h-screen flex">
+            {/* Mobile Header */}
+            <div className="md:hidden bg-white shadow-sm p-3 flex items-center justify-between">
+                <button
+                    onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                    className="p-2 rounded-full hover:bg-gray-100"
+                >
+                    {mobileSidebarOpen ? <FaTimes /> : <FaBars />}
+                </button>
+                <h1 className="font-semibold">
+                    {activeView === 'ai' ? 'AI Assistant' : 'Conversations'}
+                </h1>
+                <div className="w-8"></div> {/* Spacer for balance */}
+            </div>
+
+            <div className="h-[calc(100vh-56px)] md:h-screen flex">
                 {/* Sidebar - View Selector */}
-                <div className="w-64 bg-white rounded-l-xl shadow-md overflow-hidden flex flex-col">
-                    <div className="flex-1">
+                <div className={`${mobileSidebarOpen ? 'flex' : 'hidden'} md:flex flex-col w-64 bg-white md:rounded-l-xl shadow-md h-[calc(100vh-56px)] md:h-full absolute md:relative z-20`}>
+                    {/* Navigation Items - Takes remaining space */}
+                    <div className="flex-1 overflow-y-auto">
                         <div
                             className={`p-4 flex items-center gap-3 cursor-pointer ${activeView === 'ai' ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                            onClick={() => setActiveView('ai')}
+                            onClick={() => {
+                                setActiveView('ai');
+                                setMobileSidebarOpen(false);
+                            }}
                         >
                             <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center">
                                 <FaRobot className="text-lg" />
@@ -221,8 +252,11 @@ const Dashboard = () => {
                         </div>
 
                         <div
-                            className={`p-4 flex items-center gap-3 cursor-pointer ${activeView === 'conversations' ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
-                            onClick={() => setActiveView('conversations')}
+                            className={`p-4 flex items-center gap-3 cursor-pointer mt-[7px] ${activeView === 'conversations' ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                            onClick={() => {
+                                setActiveView('conversations');
+                                setMobileSidebarOpen(false);
+                            }}
                         >
                             <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center">
                                 <FaComments className="text-lg" />
@@ -234,50 +268,45 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    {/* User Profile at Bottom */}
-                    {user && (
-                        <div className="border-t border-gray-200 p-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    {user.image ? (
-                                        <img
-                                            src={`http://localhost:5000/${user.image}`}
-                                            alt="Avatar"
-                                            className="w-10 h-10 rounded-full object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">
-                                            {getInitials(user.username)}
-                                        </div>
-                                    )}
-                                    <div>
-                                        <h3
-                                            className="font-medium truncate max-w-[130px]"
-                                            title={user.username}
-                                        >
-                                            {user.username}
-                                        </h3>
+                    {/* User Profile Section - Pushed to Bottom */}
+                    <div className="border-t border-gray-200 p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {user.image ? (
+                                    <img
+                                        src={`http://localhost:5000/${user.image}`}
+                                        alt="Avatar"
+                                        className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold">
+                                        {getInitials(user.username)}
                                     </div>
+                                )}
+                                <div>
+                                    <h3 className="font-medium truncate max-w-[130px]" title={user.username}>
+                                        {user.username}
+                                    </h3>
                                 </div>
-                                <button
-                                    onClick={handleLogout}
-                                    className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
-                                    title="Logout"
-                                >
-                                    <FaSignOutAlt />
-                                </button>
                             </div>
+                            <button
+                                onClick={handleLogout}
+                                className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                                title="Logout"
+                            >
+                                <FaSignOutAlt />
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 bg-white rounded-r-xl shadow-md flex flex-col overflow-hidden">
+                <div className="flex-1 bg-white md:rounded-r-xl shadow-md flex flex-col overflow-hidden">
                     {activeView === 'ai' ? (
                         /* AI Chat Interface */
                         <>
-                            {/* Chat Header */}
-                            <div className="border-b border-gray-200 p-4 flex justify-between items-center">
+                            {/* Chat Header - Desktop */}
+                            <div className="hidden md:flex border-b border-gray-200 p-4 justify-between items-center">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center">
                                         <FaRobot className="text-lg" />
@@ -327,8 +356,8 @@ const Dashboard = () => {
                                                             setFontSize(size.value);
                                                             setShowThemeOptions(false);
                                                         }}
-                                                        className={`px-3 py-1 rounded-md text-sm ${fontSize === size.value 
-                                                            ? 'bg-blue-100 text-blue-800' 
+                                                        className={`px-3 py-1 rounded-md text-sm ${fontSize === size.value
+                                                            ? 'bg-blue-100 text-blue-800'
                                                             : 'bg-gray-100 text-gray-800'}`}
                                                     >
                                                         {size.name}
@@ -361,32 +390,38 @@ const Dashboard = () => {
                                         border-radius: 3px;
                                     }
                                 `}</style>
-                                {messages.map((msg, index) => {
-                                    const isSelf = msg.sender === "user";
-                                    const alignment = isSelf ? "justify-end" : "justify-start";
-                                    const bubbleStyle = isSelf
-                                        ? `text-white ${getMessageFontSize()}`
-                                        : `bg-gray-200 text-gray-800 ${getMessageFontSize()}`;
+                                {messages.length === 0 ? (
+                                    <div className="h-full flex items-center justify-center text-gray-400">
+                                        Start a conversation with the AI
+                                    </div>
+                                ) : (
+                                    messages.map((msg, index) => {
+                                        const isSelf = msg.sender === "user";
+                                        const alignment = isSelf ? "justify-end" : "justify-start";
+                                        const bubbleStyle = isSelf
+                                            ? `text-white ${getMessageFontSize()}`
+                                            : `bg-gray-200 text-gray-800 ${getMessageFontSize()}`;
 
-                                    return (
-                                        <div key={index} className={`flex ${alignment}`}>
-                                            <div
-                                                className={`px-4 py-2 rounded-xl ${bubbleStyle} max-w-[75%]`}
-                                                style={isSelf ? { backgroundColor: themeColor } : {}}
-                                            >
-                                                <p>{msg.text}</p>
-                                                <div className={`text-[10px] ${isSelf ? "text-gray-200" : "text-gray-400"} text-right mt-1`}>
-                                                    {formatTime(msg.time || new Date())}
+                                        return (
+                                            <div key={index} className={`flex ${alignment}`}>
+                                                <div
+                                                    className={`px-4 py-2 rounded-xl ${bubbleStyle} max-w-[85%] md:max-w-[75%]`}
+                                                    style={isSelf ? { backgroundColor: themeColor } : {}}
+                                                >
+                                                    <p>{msg.text}</p>
+                                                    <div className={`text-[10px] ${isSelf ? "text-gray-200" : "text-gray-400"} text-right mt-1`}>
+                                                        {formatTime(msg.time || new Date())}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                )}
                                 <div ref={messagesEndRef} />
                             </div>
 
                             {/* Input Section */}
-                            <div className="border-t border-gray-200 px-4 py-3 bg-white flex items-center gap-3">
+                            <div className="border-t border-gray-200 px-4 pt-[1.15rem] pb-[0.75rem] bg-white flex items-center gap-3">
                                 <button
                                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                                     className="text-gray-600 hover:text-yellow-500"
@@ -397,10 +432,10 @@ const Dashboard = () => {
                                 <input
                                     type="text"
                                     className={`flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 ${getFontSizeClass()}`}
-                                    style={{ 
+                                    style={{
                                         focusRingColor: themeColor,
-                                        fontSize: fontSize === "small" ? "0.875rem" : 
-                                                 fontSize === "large" ? "1.125rem" : "1rem"
+                                        fontSize: fontSize === "small" ? "0.875rem" :
+                                            fontSize === "large" ? "1.125rem" : "1rem"
                                     }}
                                     placeholder="Ask the AI anything..."
                                     value={input}
@@ -425,6 +460,8 @@ const Dashboard = () => {
                                                 setShowEmojiPicker(false);
                                             }}
                                             theme="light"
+                                            width="100%"
+                                            height={350}
                                         />
                                     </div>
                                 )}
@@ -467,7 +504,13 @@ const Dashboard = () => {
                                         <div
                                             key={conv.otherUser._id}
                                             className={`p-4 cursor-pointer rounded-lg bg-white border ${selectedConversation?._id === conv._id ? `border-[${themeColor}]` : "border-gray-200"}`}
-                                            onClick={() => setSelectedConversation(conv)}
+                                            onClick={() => {
+                                                setSelectedConversation(conv);
+                                                if (window.innerWidth < 768) {
+                                                    // On mobile, show conversation details in a modal-like view
+                                                    setMobileSidebarOpen(false);
+                                                }
+                                            }}
                                         >
                                             <div className="flex items-center gap-3 mb-2">
                                                 <div className={`w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center text-sm font-semibold`}>
@@ -487,12 +530,12 @@ const Dashboard = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="text-sm mb-2 text-gray-600">
+                                            <div className="text-sm mb-2 text-gray-600 line-clamp-1">
                                                 Last message: {conv.lastMessage.text}
                                             </div>
 
                                             <div className="text-xs opacity-50">
-                                                {formatTime(conv.lastMessage.timestamp)}
+                                                {formatRelativeTime(conv.lastMessage.timestamp)} at {formatTime(conv.lastMessage.timestamp)}
                                             </div>
                                         </div>
                                     ))
@@ -500,9 +543,19 @@ const Dashboard = () => {
                             </div>
 
                             {selectedConversation && (
-                                <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                    <h3 className="font-medium mb-2">Conversation with {selectedConversation.otherUser.username}</h3>
-                                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                                <div className={`${window.innerWidth < 768 ? 'fixed inset-0 bg-white z-30 overflow-y-auto' : 'border-t border-gray-200 bg-gray-50 p-4'}`}>
+                                    {window.innerWidth < 768 && (
+                                        <div className="p-3 border-b flex items-center">
+                                            <button
+                                                onClick={() => setSelectedConversation(null)}
+                                                className="mr-3 p-1 rounded-full hover:bg-gray-100"
+                                            >
+                                                <FaTimes />
+                                            </button>
+                                            <h3 className="font-medium">Conversation with {selectedConversation.otherUser.username}</h3>
+                                        </div>
+                                    )}
+                                    <div className="p-4 space-y-2 max-h-60 md:max-h-none overflow-y-auto">
                                         {selectedConversation.messages.map((msg, i) => (
                                             <div
                                                 key={i}
