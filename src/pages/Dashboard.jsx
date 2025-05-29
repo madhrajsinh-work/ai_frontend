@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaPaperPlane, FaSmile, FaComments, FaRobot, FaSignOutAlt, FaPalette, FaFont } from "react-icons/fa";
+import { FaPaperPlane, FaSmile, FaComments, FaRobot, FaSignOutAlt, FaPalette, FaFont, FaCog } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 
 const Dashboard = () => {
@@ -175,6 +175,14 @@ const Dashboard = () => {
         }
     };
 
+    const getMessageFontSize = () => {
+        switch (fontSize) {
+            case "small": return "text-sm";
+            case "large": return "text-lg";
+            default: return "text-base";
+        }
+    };
+
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
@@ -279,8 +287,15 @@ const Dashboard = () => {
                                         <p className="text-xs opacity-70">Always available</p>
                                     </div>
                                 </div>
+                                <button
+                                    onClick={() => setShowThemeOptions(!showThemeOptions)}
+                                    className="p-2 rounded-full hover:bg-gray-100 text-gray-600"
+                                    title="Settings"
+                                >
+                                    <FaCog className="text-lg" />
+                                </button>
                                 {showThemeOptions && (
-                                    <div className="absolute right-4 top-16 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10">
+                                    <div className="absolute right-4 top-16 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-64">
                                         <div className="mb-3">
                                             <h4 className="font-medium mb-2 flex items-center gap-2">
                                                 <FaPalette /> Theme Color
@@ -289,8 +304,11 @@ const Dashboard = () => {
                                                 {themeColors.map((color) => (
                                                     <button
                                                         key={color.value}
-                                                        onClick={() => setThemeColor(color.value)}
-                                                        className="w-6 h-6 rounded-full"
+                                                        onClick={() => {
+                                                            setThemeColor(color.value);
+                                                            setShowThemeOptions(false);
+                                                        }}
+                                                        className={`w-6 h-6 rounded-full border-2 ${themeColor === color.value ? 'border-gray-800' : 'border-transparent'}`}
                                                         style={{ backgroundColor: color.value }}
                                                         title={color.name}
                                                     />
@@ -305,8 +323,13 @@ const Dashboard = () => {
                                                 {fontSizes.map((size) => (
                                                     <button
                                                         key={size.value}
-                                                        onClick={() => setFontSize(size.value)}
-                                                        className={`px-2 py-1 rounded ${fontSize === size.value ? 'bg-blue-100' : 'bg-gray-100'}`}
+                                                        onClick={() => {
+                                                            setFontSize(size.value);
+                                                            setShowThemeOptions(false);
+                                                        }}
+                                                        className={`px-3 py-1 rounded-md text-sm ${fontSize === size.value 
+                                                            ? 'bg-blue-100 text-blue-800' 
+                                                            : 'bg-gray-100 text-gray-800'}`}
                                                     >
                                                         {size.name}
                                                     </button>
@@ -342,8 +365,8 @@ const Dashboard = () => {
                                     const isSelf = msg.sender === "user";
                                     const alignment = isSelf ? "justify-end" : "justify-start";
                                     const bubbleStyle = isSelf
-                                        ? `text-white`
-                                        : "bg-gray-200 text-gray-800";
+                                        ? `text-white ${getMessageFontSize()}`
+                                        : `bg-gray-200 text-gray-800 ${getMessageFontSize()}`;
 
                                     return (
                                         <div key={index} className={`flex ${alignment}`}>
@@ -373,8 +396,12 @@ const Dashboard = () => {
 
                                 <input
                                     type="text"
-                                    className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2"
-                                    style={{ focusRingColor: themeColor }}
+                                    className={`flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 ${getFontSizeClass()}`}
+                                    style={{ 
+                                        focusRingColor: themeColor,
+                                        fontSize: fontSize === "small" ? "0.875rem" : 
+                                                 fontSize === "large" ? "1.125rem" : "1rem"
+                                    }}
                                     placeholder="Ask the AI anything..."
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
